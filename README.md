@@ -149,12 +149,6 @@ yarn dev
 npm run start:backend
 ```
 
-### 🔹 Running Tests
-
-```sh
-npm test
-```
-
 ### 🔹 Running the CI/CD Pipeline
 
 - Push changes to GitHub
