@@ -4,8 +4,8 @@ import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 
-const CLOUDINARY_UPLOAD_PRESET = "ml_default"; // Replace with your Cloudinary Upload Preset
-const CLOUDINARY_CLOUD_NAME = "dcx2lz5wh"; // Replace with your Cloudinary Cloud Name
+const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const CLOUDINARY_CLOUD_NAME = "dcx2lz5wh";
 
 const VideoRecorder = () => {
   const webcamRef = useRef<Webcam>(null);

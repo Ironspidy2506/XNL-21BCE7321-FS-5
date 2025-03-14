@@ -1,10 +1,10 @@
 import VideoFeed from "@/components/VideoFeed";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-      <h1 className="text-4xl font-bold mb-4">Next-Gen Video Sharing 🚀</h1>
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
+      <h1 className="text-3xl font-bold mt-4">Video Feed</h1>
       <VideoFeed />
-    </main>
+    </div>
   );
 }
