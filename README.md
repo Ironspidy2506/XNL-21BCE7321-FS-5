@@ -131,22 +131,22 @@ cd XNL-21BCE7321-FS-5
 npm install
 ```
 
+### 🔹 Jump to Directory
+
+```sh 
+# Both in different terminals
+cd backend
+cd frontend
+```
+
 ### 🔹 Running the Development Server
 
 ```sh
+# For Backend
+npm run start
+
+# For Frontend
 npm run dev
-```
-
-or
-
-```sh
-yarn dev
-```
-
-### 🔹 Running Backend Services
-
-```sh
-npm run start:backend
 ```
 
 ### 🔹 Running the CI/CD Pipeline
