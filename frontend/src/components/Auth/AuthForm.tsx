@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // React Router instead of Next.js Router
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +15,21 @@ interface AuthFormProps {
 }
 
 const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const hasVisited = localStorage.getItem("hasVisited");
+    if (hasVisited) {
+      navigate("/"); // Redirect using React Router
+    }
+  }, []);
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,13 +47,16 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
 
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
-      const response = await axios.post(`https://xnl-21bce7321-fs-5.onrender.com${endpoint}`, {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        `https://xnl-21bce7321-fs-5.onrender.com${endpoint}`,
+        {
+          email,
+          password,
+        }
+      );
 
       const token = response.data.token;
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
 
       toast({
         title: isLogin ? "Welcome back!" : "Account created!",
