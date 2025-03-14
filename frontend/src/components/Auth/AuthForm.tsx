@@ -36,7 +36,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
 
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
-      const response = await axios.post(`http://localhost:5000${endpoint}`, {
+      const response = await axios.post(`https://xnl-21bce7321-fs-5.onrender.com${endpoint}`, {
         email,
         password,
       });

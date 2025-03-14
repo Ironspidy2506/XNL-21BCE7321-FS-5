@@ -13,7 +13,9 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json()); // Parse JSON requests
-app.use(cors()); // Enable CORS
+app.use(cors({
+    origin: 'https://xnl-21bce7321.vercel.app/',
+  }));
 
 app.use('/api/auth', loginRouter);
 
