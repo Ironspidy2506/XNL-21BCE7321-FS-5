@@ -55,6 +55,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
       });
 
       onSuccess();
+      
       setTimeout(() => {
         window.location.reload();
       }, 500);
