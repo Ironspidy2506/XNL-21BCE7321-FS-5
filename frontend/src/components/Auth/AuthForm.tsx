@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // React Router instead of Next.js Router
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +13,12 @@ interface AuthFormProps {
 }
 
 const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
-  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const hasVisited = localStorage.getItem("hasVisited");
-    if (hasVisited) {
-      navigate("/"); // Redirect using React Router
-    }
-  }, []);
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,14 +49,15 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
 
       toast({
         title: isLogin ? "Welcome back!" : "Account created!",
-        description: (isLogin
+        description: isLogin
           ? "You have successfully logged in."
-          : "Your account has been created successfully.")
-          
+          : "Your account has been created successfully.",
       });
 
       onSuccess();
-      navigate("/");
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Authentication Failed",
