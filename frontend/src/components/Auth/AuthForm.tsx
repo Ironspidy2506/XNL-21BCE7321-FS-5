@@ -60,14 +60,14 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
 
       toast({
         title: isLogin ? "Welcome back!" : "Account created!",
-        description:
-          response.data.message ||
-          (isLogin
-            ? "You have successfully logged in."
-            : "Your account has been created successfully."),
+        description: (isLogin
+          ? "You have successfully logged in."
+          : "Your account has been created successfully.")
+          
       });
 
       onSuccess();
+      navigate("/");
     } catch (error: any) {
       toast({
         title: "Authentication Failed",
