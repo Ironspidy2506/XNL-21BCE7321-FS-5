@@ -55,7 +55,10 @@ const WelcomeScreen = ({ onComplete }: WelcomeScreenProps) => {
 
           <Button
             variant="outline"
-            onClick={onComplete}
+            onClick={() => {
+              localStorage.setItem("hasVisited", "true");
+              window.location.reload(); // ✅ Refresh the page after setting localStorage
+            }}
             className="w-full btn-secondary"
           >
             Continue as Guest
