@@ -6,6 +6,7 @@ import ChatView from "@/components/Messages/ChatView";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { generateAIReply } from "@/services/aiService";
 
 // Mock chat data
 const MOCK_CHATS = [
@@ -126,10 +127,10 @@ const Messages = () => {
     }
   };
   
-  const handleSendMessage = (chatId: string, message: string) => {
+  const handleSendMessage = async (chatId: string, message: string) => {
     const now = new Date();
     const formattedTime = format(now, "h:mm a");
-    
+  
     const newMessage = {
       id: `msg${Date.now()}`,
       text: message,
@@ -137,83 +138,58 @@ const Messages = () => {
       isOutgoing: true,
       status: "sent"
     };
-    
-    // Add new message to the chat
+  
+    // Add new message to chat
     setChatMessages(prev => ({
       ...prev,
       [chatId]: [...(prev[chatId] || []), newMessage]
     }));
-    
+  
     // Update chat preview
     setChats(chats.map(chat => 
       chat.id === chatId 
-        ? { 
-            ...chat, 
-            lastMessage: message,
-            timestamp: "Just now"
-          } 
+        ? { ...chat, lastMessage: message, timestamp: "Just now" } 
         : chat
     ));
-    
-    // Simulate message delivery after a short delay
+  
+    // Simulate sending message
     setTimeout(() => {
       setChatMessages(prev => ({
         ...prev,
         [chatId]: prev[chatId].map((msg: any) => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: "delivered" } 
-            : msg
+          msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg
         )
       }));
-      
-      // Simulate message read after another delay
-      setTimeout(() => {
+  
+      setTimeout(async () => {
         setChatMessages(prev => ({
           ...prev,
           [chatId]: prev[chatId].map((msg: any) => 
-            msg.id === newMessage.id 
-              ? { ...msg, status: "read" } 
-              : msg
+            msg.id === newMessage.id ? { ...msg, status: "read" } : msg
           )
         }));
-        
-        // Simulate a reply after read
-        const replies = [
-          "That's interesting!",
-          "Thanks for letting me know 👍",
-          "Sounds good!",
-          "I'll check it out",
-          "Great idea! 🔥"
-        ];
-        
-        const randomReply = replies[Math.floor(Math.random() * replies.length)];
-        
-        setTimeout(() => {
-          const replyMessage = {
-            id: `msg${Date.now()}`,
-            text: randomReply,
-            timestamp: format(new Date(), "h:mm a"),
-            isOutgoing: false
-          };
-          
-          setChatMessages(prev => ({
-            ...prev,
-            [chatId]: [...prev[chatId], replyMessage]
-          }));
-          
-          // Update chat preview with the reply
-          setChats(chats.map(chat => 
-            chat.id === chatId 
-              ? { 
-                  ...chat, 
-                  lastMessage: randomReply,
-                  timestamp: "Just now",
-                  unread: activeChatId === chatId ? 0 : 1
-                } 
-              : chat
-          ));
-        }, 2000);
-      }, 1000);
+  
+        // **Generate AI Reply**
+        const aiReply = await generateAIReply(message);
+  
+        const replyMessage = {
+          id: `msg${Date.now()}`,
+          text: aiReply,
+          timestamp: format(new Date(), "h:mm a"),
+          isOutgoing: false
+        };
+  
+        setChatMessages(prev => ({
+          ...prev,
+          [chatId]: [...prev[chatId], replyMessage]
+        }));
+  
+        setChats(chats.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, lastMessage: aiReply, timestamp: "Just now", unread: activeChatId === chatId ? 0 : 1 } 
+            : chat
+        ));
+      }, 2000);
     }, 1000);
   };
   

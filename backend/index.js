@@ -1,9 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import loginRouter from './routes/loginRouter.js';
 
 // Load environment variables
 dotenv.config();
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,6 +14,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(express.json()); // Parse JSON requests
 app.use(cors()); // Enable CORS
+
+app.use('/api/auth', loginRouter);
 
 // Sample route
 app.get('/', (req, res) => {

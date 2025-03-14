@@ -1,69 +1,70 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/Layout/AppLayout";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VideoFeed from "@/components/Video/VideoFeed";
 import VideoRecorder from "@/components/Video/VideoRecorder";
 import WelcomeScreen from "@/components/Auth/WelcomeScreen";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/components/ui/use-toast";
-
-// Mock video data
-const MOCK_VIDEOS = [
-  {
-    id: "video1",
-    url: "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-fashion-woman-with-silver-makeup-39875-large.mp4",
-    username: "fashionista",
-    caption: "Silver makeup look for the weekend ✨ #makeup #fashion",
-    likes: 1204,
-    comments: 24,
-    isLiked: false
-  },
-  {
-    id: "video2",
-    url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-    username: "naturelover",
-    caption: "Spring blooms are here! 🌿 #nature #spring",
-    likes: 845,
-    comments: 12,
-    isLiked: true
-  },
-  {
-    id: "video3",
-    url: "https://assets.mixkit.co/videos/preview/mixkit-man-under-multicolored-lights-1237-large.mp4",
-    username: "visualartist",
-    caption: "Playing with light and shadows 🌈 #art #visualeffects",
-    likes: 2156,
-    comments: 43,
-    isLiked: false
-  }
-];
+import { fetchVideos } from "@/services/videoService";
 
 const Index = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [videos, setVideos] = useState(MOCK_VIDEOS);
-  const isMobile = useIsMobile();
+  const [videos, setVideos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
-  
-  // Check if first-time user
+
+  // Handle first-time users
   useEffect(() => {
-    const hasVisited = localStorage.getItem("hasVisited");
-    if (hasVisited) {
+    if (localStorage.getItem("hasVisited")) {
       setShowWelcome(false);
     }
   }, []);
-  
-  const handleWelcomeComplete = () => {
-    localStorage.setItem("hasVisited", "true");
-    setShowWelcome(false);
+
+  // Fetch initial videos
+  useEffect(() => {
+    loadMoreVideos();
+  }, []);
+
+  const loadMoreVideos = async () => {
+    if (!hasMore || loading) return;
+    setLoading(true);
+    try {
+      const newVideos = await fetchVideos("nature", page); // Change query as needed
+      if (newVideos.length === 0) {
+        setHasMore(false); // No more videos to load
+      } else {
+        setVideos((prevVideos) => [...prevVideos, ...newVideos]);
+        setPage((prevPage) => prevPage + 1);
+      }
+    } catch (error) {
+      console.error("Error fetching videos:", error);
+    }
+    setLoading(false);
   };
-  
+
+  // Infinite Scroll Observer
+  const lastVideoRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMoreVideos();
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
+
+  // Handle new recorded video
   const handleVideoReady = (videoBlob: Blob) => {
     const url = URL.createObjectURL(videoBlob);
-    
-    // Add the new video to the feed
     const newVideo = {
       id: `video${Date.now()}`,
       url,
@@ -71,35 +72,32 @@ const Index = () => {
       caption: "My new video #Next-Gen-Videos",
       likes: 0,
       comments: 0,
-      isLiked: false
+      isLiked: false,
     };
-    
-    setVideos([newVideo, ...videos]);
+    setVideos((prevVideos) => [newVideo, ...prevVideos]);
     setIsRecording(false);
-    
-    toast({
-      title: "Video created!",
-      description: "Your video has been added to the feed.",
-    });
+    toast({ title: "Video created!", description: "Your video is now live." });
   };
-  
+
   if (showWelcome) {
-    return <WelcomeScreen onComplete={handleWelcomeComplete} />;
+    return (
+      <WelcomeScreen
+        onComplete={() => localStorage.setItem("hasVisited", "true")}
+      />
+    );
   }
-  
+
   return (
     <AppLayout className="pb-16">
-      <VideoFeed videos={videos} />
-      
-      {/* Video recording floating button */}
+      <VideoFeed videos={videos} lastVideoRef={lastVideoRef} />
+      {loading && <p className="text-center mt-4">Loading more videos...</p>}
       <Button
         onClick={() => setIsRecording(true)}
-        className="fixed z-30 bottom-20 right-4 w-14 h-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 flex items-center justify-center"
+        className="fixed bottom-24 right-4 px-4 py-3 rounded-full shadow-lg bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 text-white font-semibold"
       >
-        <Plus className="h-7 w-7" />
+        <Plus className="h-6 w-6" />
+        Create
       </Button>
-      
-      {/* Video recorder */}
       {isRecording && (
         <VideoRecorder
           onCancel={() => setIsRecording(false)}

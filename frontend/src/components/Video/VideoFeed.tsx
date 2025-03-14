@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,44 +16,42 @@ interface VideoData {
 
 interface VideoFeedProps {
   videos: VideoData[];
+  lastVideoRef: (node: HTMLDivElement | null) => void; // Reference for infinite scrolling
 }
 
-const VideoFeed = ({ videos }: VideoFeedProps) => {
-  const [activeVideoIndex, setActiveVideoIndex] = React.useState(0);
-  const videoRefs = React.useRef<{ [key: string]: HTMLVideoElement | null }>({});
-  
-  // Handle video visibility
-  React.useEffect(() => {
+const VideoFeed = ({ videos, lastVideoRef }: VideoFeedProps) => {
+  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const videoId = entry.target.id;
           const videoElement = videoRefs.current[videoId];
-          
+
           if (!videoElement) return;
-          
+
           if (entry.isIntersecting) {
             videoElement.play();
-            const index = videos.findIndex(video => video.id === videoId);
-            if (index !== -1) setActiveVideoIndex(index);
+            const index = videos.findIndex((video) => video.id === videoId);
+            if (index !== -1) setActiveIndex(index);
           } else {
             videoElement.pause();
           }
         });
       },
-      { threshold: 0.6 }
+      { threshold: 0.8 }
     );
-    
+
     Object.keys(videoRefs.current).forEach((videoId) => {
       const videoElement = document.getElementById(videoId);
       if (videoElement) observer.observe(videoElement);
     });
-    
-    return () => {
-      observer.disconnect();
-    };
+
+    return () => observer.disconnect();
   }, [videos]);
-  
+
   if (videos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6">
@@ -68,27 +65,19 @@ const VideoFeed = ({ videos }: VideoFeedProps) => {
       </div>
     );
   }
-  
+
   return (
-    <div className="relative h-[calc(100vh-80px)] overflow-hidden">
-      {videos.map((video, index) => (
-        <motion.div
-          key={video.id}
-          id={`video-container-${video.id}`}
-          className={cn(
-            "absolute inset-0 h-full w-full",
-            index === activeVideoIndex ? "z-10" : "z-0"
-          )}
-          initial={{ opacity: 0 }}
-          animate={{ 
-            opacity: index === activeVideoIndex ? 1 : 0,
-            scale: index === activeVideoIndex ? 1 : 0.95
-          }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="relative h-full flex items-center justify-center bg-black">
+    <div className="h-[calc(100vh-80px)] overflow-y-auto snap-y snap-mandatory scrollbar-hide">
+      {videos.map((video, index) => {
+        const isLastVideo = index === videos.length - 1;
+        return (
+          <motion.div
+            key={video.id}
+            id={video.id}
+            ref={isLastVideo ? lastVideoRef : null} // Attach lastVideoRef
+            className="relative h-screen w-full snap-start flex items-center justify-center bg-black"
+          >
             <video
-              id={video.id}
               ref={(el) => (videoRefs.current[video.id] = el)}
               src={video.url}
               className="h-full w-full object-contain"
@@ -104,15 +93,17 @@ const VideoFeed = ({ videos }: VideoFeedProps) => {
                 }
               }}
             />
-            
+
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent">
               <div className="flex justify-between items-end">
                 <div className="text-white">
                   <h4 className="font-medium mb-1">@{video.username}</h4>
-                  <p className="text-sm text-white/80 line-clamp-2">{video.caption}</p>
+                  <p className="text-sm text-white/80 line-clamp-2">
+                    {video.caption}
+                  </p>
                 </div>
-                
-                <div className="flex flex-col items-center space-y-4">
+
+                <div className="flex flex-col items-center space-y-4 mb-32">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -121,11 +112,16 @@ const VideoFeed = ({ videos }: VideoFeedProps) => {
                       video.isLiked && "text-red-500"
                     )}
                   >
-                    <Heart className="h-6 w-6" fill={video.isLiked ? "currentColor" : "none"} />
+                    <Heart
+                      className="h-6 w-6"
+                      fill={video.isLiked ? "currentColor" : "none"}
+                    />
                     <span className="sr-only">Like</span>
                   </Button>
-                  <span className="text-white text-xs font-medium">{video.likes}</span>
-                  
+                  <span className="text-white text-xs font-medium">
+                    {video.likes}
+                  </span>
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -134,8 +130,10 @@ const VideoFeed = ({ videos }: VideoFeedProps) => {
                     <MessageCircle className="h-6 w-6" />
                     <span className="sr-only">Comment</span>
                   </Button>
-                  <span className="text-white text-xs font-medium">{video.comments}</span>
-                  
+                  <span className="text-white text-xs font-medium">
+                    {video.comments}
+                  </span>
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -147,9 +145,9 @@ const VideoFeed = ({ videos }: VideoFeedProps) => {
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      ))}
+          </motion.div>
+        );
+      })}
     </div>
   );
 };

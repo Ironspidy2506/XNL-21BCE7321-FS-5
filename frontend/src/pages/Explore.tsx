@@ -1,105 +1,112 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/Layout/AppLayout";
-import { Search, SlidersHorizontal, TrendingUp, Heart, Compass } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  TrendingUp,
+  Heart,
+  Compass,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-interface VideoCard {
+interface Photo {
   id: string;
-  thumbnailUrl: string;
-  duration: string;
-  username: string;
-  views: string;
+  src: { medium: string };
+  photographer: string;
 }
 
-const MOCK_TRENDING: VideoCard[] = [
-  {
-    id: "trend1",
-    thumbnailUrl: "https://images.unsplash.com/photo-1579156412503-f22426588c38",
-    duration: "0:45",
-    username: "trendmaker",
-    views: "1.2M"
-  },
-  {
-    id: "trend2",
-    thumbnailUrl: "https://images.unsplash.com/photo-1494253109108-2e30c049369b",
-    duration: "1:30",
-    username: "creativeminds",
-    views: "845K"
-  },
-  {
-    id: "trend3",
-    thumbnailUrl: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b",
-    duration: "0:35",
-    username: "musiclovers",
-    views: "2.5M"
-  },
-  {
-    id: "trend4",
-    thumbnailUrl: "https://images.unsplash.com/photo-1631048501851-4920340a5680",
-    duration: "2:10",
-    username: "foodguru",
-    views: "768K"
-  }
-];
-
-const MOCK_FEATURED: VideoCard[] = [
-  {
-    id: "feat1",
-    thumbnailUrl: "https://images.unsplash.com/photo-1502230831726-fe5549140034",
-    duration: "3:25",
-    username: "travelbug",
-    views: "432K"
-  },
-  {
-    id: "feat2",
-    thumbnailUrl: "https://images.unsplash.com/photo-1527956041665-d7a1b380c460",
-    duration: "1:15",
-    username: "lifestyleguru",
-    views: "321K"
-  },
-  {
-    id: "feat3",
-    thumbnailUrl: "https://images.unsplash.com/photo-1661956602116-aa6865609028",
-    duration: "0:58",
-    username: "techreview",
-    views: "567K"
-  },
-  {
-    id: "feat4",
-    thumbnailUrl: "https://images.unsplash.com/photo-1531512073830-ba890ca4eba2",
-    duration: "2:35",
-    username: "fitnesslover",
-    views: "1.1M"
-  }
-];
+const API_KEY = "u566iDApuJX0aqOJMTSJvs08XD7o0KP2h5BWsCV3g0OEokopUlh24J1e"; // Replace with your Pexels API Key
 
 const Explore = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("trending"); // Track active tab
+  const loaderRef = useRef(null);
+
+  // Function to determine API endpoint based on tab
+  const getApiUrl = () => {
+    if (activeTab === "trending")
+      return `https://api.pexels.com/v1/curated?page=${page}&per_page=10`;
+    if (activeTab === "featured")
+      return `https://api.pexels.com/v1/search?query=popular&page=${page}&per_page=10`;
+    if (activeTab === "discover")
+      return `https://api.pexels.com/v1/search?query=random&page=${page}&per_page=10`;
+  };
+
+  // Fetch photos from Pexels API
+  const fetchPhotos = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const response = await fetch(getApiUrl(), {
+        headers: { Authorization: API_KEY },
+      });
+      const data = await response.json();
+      setPhotos((prev) =>
+        page === 1 ? data.photos : [...prev, ...data.photos]
+      ); // Reset on tab switch
+      setPage((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error fetching photos:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, activeTab, loading]);
+
+  // Fetch new photos when tab changes
+  useEffect(() => {
+    setPhotos([]); // Clear photos when switching tabs
+    setPage(1);
+    fetchPhotos();
+  }, [activeTab]);
+
+  // Infinite Scroll: Load more when the observer is visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchPhotos();
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (loaderRef.current) observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [fetchPhotos]);
+
   return (
     <AppLayout className="pb-16">
       <div className="p-4">
+        {/* Search Bar */}
         <div className="flex items-center space-x-2 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input 
-              placeholder="Search videos" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+            <Input
+              placeholder="Search videos"
               className="pl-9 bg-secondary border-none"
             />
           </div>
-          <Button variant="ghost" size="icon" className="rounded-full bg-secondary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-secondary"
+          >
             <SlidersHorizontal className="h-5 w-5" />
           </Button>
         </div>
-        
-        <Tabs defaultValue="trending" className="w-full">
+
+        {/* Tabs */}
+        <Tabs
+          defaultValue="trending"
+          onValueChange={(val) => setActiveTab(val)}
+          className="w-full"
+        >
           <TabsList className="w-full mb-4 bg-secondary/50">
             <TabsTrigger value="trending" className="flex-1">
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -114,22 +121,26 @@ const Explore = () => {
               Discover
             </TabsTrigger>
           </TabsList>
-          
+
+          {/* Tab Contents */}
           <TabsContent value="trending" className="mt-0">
-            <VideoGrid videos={MOCK_TRENDING} />
+            <PhotoGrid photos={photos} />
+            <div ref={loaderRef} className="text-center py-4">
+              {loading && <p>Loading more photos...</p>}
+            </div>
           </TabsContent>
-          
+
           <TabsContent value="featured" className="mt-0">
-            <VideoGrid videos={MOCK_FEATURED} />
+            <PhotoGrid photos={photos} />
+            <div ref={loaderRef} className="text-center py-4">
+              {loading && <p>Loading more photos...</p>}
+            </div>
           </TabsContent>
-          
+
           <TabsContent value="discover" className="mt-0">
-            <div className="flex flex-col items-center justify-center p-12 text-center">
-              <Compass className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">Personalized discovery coming soon</h3>
-              <p className="text-muted-foreground max-w-md">
-                We're working on analyzing your preferences to suggest videos you'll love.
-              </p>
+            <PhotoGrid photos={photos} />
+            <div ref={loaderRef} className="text-center py-4">
+              {loading && <p>Loading more photos...</p>}
             </div>
           </TabsContent>
         </Tabs>
@@ -138,29 +149,26 @@ const Explore = () => {
   );
 };
 
-const VideoGrid = ({ videos }: { videos: VideoCard[] }) => {
+// Photo Grid Component
+const PhotoGrid = ({ photos }: { photos: Photo[] }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {videos.map((video) => (
+      {photos.map((photo) => (
         <motion.div
-          key={video.id}
+          key={photo.id}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.98 }}
-          className="video-card overflow-hidden"
+          className="overflow-hidden"
         >
           <div className="relative aspect-[9/16]">
-            <img 
-              src={video.thumbnailUrl} 
-              alt={`Video by ${video.username}`}
+            <img
+              src={photo.src.medium}
+              alt={`Photo by ${photo.photographer}`}
               className="w-full h-full object-cover rounded-xl"
             />
-            <div className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/70 text-white text-xs">
-              {video.duration}
-            </div>
           </div>
           <div className="mt-2">
-            <p className="font-medium truncate">@{video.username}</p>
-            <p className="text-xs text-muted-foreground">{video.views} views</p>
+            <p className="font-medium truncate">@{photo.photographer}</p>
           </div>
         </motion.div>
       ))}

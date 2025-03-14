@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import axios from "axios";
 
 interface AuthFormProps {
   onSuccess: () => void;
@@ -22,7 +22,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isLogin && password !== confirmPassword) {
       toast({
         title: "Passwords do not match",
@@ -31,29 +31,46 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Simulate auth process
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // In a real app, you would handle actual authentication here
+
+    try {
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
+      const response = await axios.post(`http://localhost:5000${endpoint}`, {
+        email,
+        password,
+      });
+
+      const token = response.data.token;
+      localStorage.setItem('token', token);
+
       toast({
         title: isLogin ? "Welcome back!" : "Account created!",
-        description: isLogin 
-          ? "You have successfully logged in." 
-          : "Your account has been created successfully.",
+        description:
+          response.data.message ||
+          (isLogin
+            ? "You have successfully logged in."
+            : "Your account has been created successfully."),
       });
-      
+
       onSuccess();
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Authentication Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="glass p-6 rounded-2xl w-full max-w-md mx-auto animate-scale-in">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-medium">{isLogin ? "Sign In" : "Create Account"}</h2>
+        <h2 className="text-2xl font-medium">
+          {isLogin ? "Sign In" : "Create Account"}
+        </h2>
         <Button
           variant="ghost"
           size="icon"
@@ -63,7 +80,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
           <X className="h-5 w-5" />
         </Button>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -77,7 +94,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
             className="form-input"
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -90,7 +107,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
             className="form-input"
           />
         </div>
-        
+
         {!isLogin && (
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -105,7 +122,7 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
             />
           </div>
         )}
-        
+
         <Button
           type="submit"
           className={cn(
@@ -114,24 +131,18 @@ const AuthForm = ({ onSuccess, onClose }: AuthFormProps) => {
           )}
           disabled={isLoading}
         >
-          {isLoading 
-            ? "Processing..." 
-            : isLogin 
-              ? "Sign In" 
-              : "Create Account"
-          }
+          {isLoading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
         </Button>
-        
+
         <div className="text-center mt-4">
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
             className="text-sm text-muted-foreground hover:text-primary"
           >
-            {isLogin 
-              ? "Don't have an account? Sign up" 
-              : "Already have an account? Sign in"
-            }
+            {isLogin
+              ? "Don't have an account? Sign up"
+              : "Already have an account? Sign in"}
           </button>
         </div>
       </form>
